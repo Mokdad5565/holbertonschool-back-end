@@ -1,30 +1,43 @@
 #!/usr/bin/python3
-"""import"""
-import json
+"""Given an Employee ID, returns information
+about his/her TODO list progress.
+"""
 import requests
-import sys
+from sys import argv
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(f"missing employee id as argument")
-        sys.exit(1)
+if __name__ == '__main__':
+    try:
+        emp_id = int(argv[1])
+    except ValueError:
+        exit()
 
-    URL = "https://jsonplaceholder.typicode.com"
-    EMPLOYEE_ID = sys.argv[1]
+    api_url = 'https://jsonplaceholder.typicode.com'
+    user_uri = '{api}/users/{id}'.format(api=api_url, id=emp_id)
+    todo_uri = '{user_uri}/todos'.format(user_uri=user_uri)
 
-    EMPLOYEE_TODOS = requests.get(f"{URL}/users/{EMPLOYEE_ID}/todos",
-                                  params={"_expand": "user"})
-    data = EMPLOYEE_TODOS.json()
+    # User Response
+    res = requests.get(user_uri).json()
 
-    EMPLOYEE_NAME = data[0]["user"]["name"]
-    TOTAL_NUMBER_OF_TASKS = len(data)
-    NUMBER_OF_DONE_TASKS = 0
-    TASK_TITLE = []
-    for task in data:
-        if task["completed"]:
-            NUMBER_OF_DONE_TASKS += 1
-            TASK_TITLE.append(task["title"])
-    print(f"Employee {EMPLOYEE_NAME} is done with tasks"
-          f"({NUMBER_OF_DONE_TASKS}/{TOTAL_NUMBER_OF_TASKS}):")
-    for title in TASK_TITLE:
-        print("\t ", title)
+    # Name of the employee
+    name = res.get('name')
+
+    # User TODO Response
+    res = requests.get(todo_uri).json()
+
+    # Total number of tasks, the sum of completed and non-completed tasks
+    total = len(res)
+
+    # Number of non-completed tasks
+    non_completed = sum([elem['completed'] is False for elem in res])
+
+    # Number of completed tasks
+    completed = total - non_completed
+
+    # Formatting the expected output
+    str = "Employee {emp_name} is done with tasks({completed}/{total}):"
+    print(str.format(emp_name=name, completed=completed, total=total))
+
+    # Printing completed tasks
+    for elem in res:
+        if elem.get('completed') is True:
+            print('\t', elem.get('title'))

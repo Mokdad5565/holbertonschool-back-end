@@ -1,27 +1,42 @@
 #!/usr/bin/python3
-"""import"""
-import json
+"""Export data from an API to JSON format.
+"""
+from json import dumps
 import requests
-import sys
+from sys import argv
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(f"missing employee id as argument")
-        sys.exit(1)
+if __name__ == '__main__':
+    # Checks if the argument can be converted to a number
+    try:
+        emp_id = int(argv[1])
+    except ValueError:
+        exit()
 
-    URL = "https://jsonplaceholder.typicode.com"
-    EMPLOYEE_ID = sys.argv[1]
+    # Main formatted names to API uris and filenames
+    api_url = 'https://jsonplaceholder.typicode.com'
+    user_uri = '{api}/users/{id}'.format(api=api_url, id=emp_id)
+    todo_uri = '{user_uri}/todos'.format(user_uri=user_uri)
+    filename = '{emp_id}.json'.format(emp_id=emp_id)
 
-    EMPLOYEE_TODOS = requests.get(f"{URL}/users/{EMPLOYEE_ID}/todos",
-                                  params={"_expand": "user"})
-    data = EMPLOYEE_TODOS.json()
+    # User Response
+    u_res = requests.get(user_uri).json()
 
-    username = data[0]["user"]["username"]
-    USER_TASK = {EMPLOYEE_ID: []}
-    for task in data:
-        dic_task = {"task": task["title"], "completed": task["completed"],
-                    "username": username}
-        USER_TASK[EMPLOYEE_ID].append(dic_task)
-    fileName = f"{EMPLOYEE_ID}.json"
-    with open(fileName, "w") as file:
-        json.dump(USER_TASK, file)
+    # User TODO Response
+    t_res = requests.get(todo_uri).json()
+
+    # A list of all tasks of an user
+    user_tasks = list()
+
+    for elem in t_res:
+        data = {
+            'task': elem.get('title'),
+            'completed': elem.get('completed'),
+            'username': u_res.get('username')
+        }
+
+        user_tasks.append(data)
+
+    # Create the new file for the user to save the information
+    # Filename example: `{user_id}.json`
+    with open(filename, 'w', encoding='utf-8') as jsonfile:
+        jsonfile.write(dumps({emp_id: user_tasks}))
